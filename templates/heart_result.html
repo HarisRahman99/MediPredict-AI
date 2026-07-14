@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heart Disease Results — MediPredict AI</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <style>
+    /* ── Heart module accent overrides ── */
+    .heart-badge {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.22);
+      color: #DC2626;
+    }
+    .exercise-bar {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #EF4444, #F97316);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-weight: 700;
+      color: white;
+      width: 0%;
+      transition: width 1.4s cubic-bezier(0.22, 0.68, 0, 1.2);
+      white-space: nowrap;
+    }
+    /* Print */
+    @media print {
+      .no-print { display: none !important; }
+      .glass-card, .result-metric-card { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ─────────────────────────────────────────────── -->
+<nav class="navbar navbar-expand-lg custom-navbar no-print">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <i class="fa-solid fa-heart-pulse me-2" style="color:var(--teal);"></i>MediPredict AI
+    </a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto align-items-center">
+        <li class="nav-item"><a class="nav-link" href="/"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fa-solid fa-grid-2 me-1"></i>Modules</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-5">
+
+  <!-- ── Header ───────────────────────────────────────────── -->
+  <div class="text-center mb-5">
+    <span class="module-badge heart-badge">
+      <i class="fa-solid fa-heart-pulse me-1"></i>HEART DISEASE RESULT
+    </span>
+    <h1 class="module-title">Heart Disease Risk Dashboard</h1>
+    <p class="text-muted" style="margin-top:-14px;">
+      Analyzed on <strong>{{ age }}-year-old patient</strong> using 14 cardiovascular markers
+      {% if currentSmoker == "1" %}
+      · <span style="color:var(--rose);font-weight:700;">
+          <i class="fa-solid fa-smoking me-1"></i>Smoker
+        </span>
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- ── Top Metric Cards ──────────────────────────────────── -->
+  <div class="row g-3 mb-4">
+
+    <!-- Risk Gauge -->
+    <div class="col-md-3 col-6">
+      <div class="result-metric-card">
+        <div class="result-metric-label">10-Year CHD Risk</div>
+        <div class="risk-gauge-wrap">
+          <canvas id="riskGauge" width="200" height="110"></canvas>
+          <div class="risk-gauge-value">{{ risk }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Level -->
+    <div class="col-md-3 col-6">
+      <div class="result-metric-card">
+        <div class="result-metric-label">Risk Level</div>
+        {% if risk_level == "High Risk" %}
+          <div class="result-metric-value" style="color:var(--rose);">
+            <i class="fa-solid fa-circle-exclamation"></i><br>{{ risk_level }}
+          </div>
+        {% elif risk_level == "Moderate Risk" %}
+          <div class="result-metric-value" style="color:var(--amber);">
+            <i class="fa-solid fa-triangle-exclamation"></i><br>{{ risk_level }}
+          </div>
+        {% else %}
+          <div class="result-metric-value" style="color:var(--emerald);">
+            <i class="fa-solid fa-circle-check"></i><br>{{ risk_level }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Risk Category (heart equivalent of CKD Stage) -->
+    <div class="col-md-3 col-6">
+      <div class="result-metric-card">
+        <div class="result-metric-label">CVD Risk Category</div>
+        {% if heart_risk_category == "Very High" %}
+          <div class="result-metric-value" style="color:#B91C1C;">{{ heart_risk_category }}</div>
+        {% elif heart_risk_category == "High" %}
+          <div class="result-metric-value" style="color:var(--rose);">{{ heart_risk_category }}</div>
+        {% elif heart_risk_category == "Moderate" %}
+          <div class="result-metric-value" style="color:var(--amber);">{{ heart_risk_category }}</div>
+        {% elif heart_risk_category == "Low" %}
+          <div class="result-metric-value" style="color:var(--teal-dark);">{{ heart_risk_category }}</div>
+        {% else %}
+          <div class="result-metric-value" style="color:var(--emerald);">{{ heart_risk_category }}</div>
+        {% endif %}
+        <small class="text-muted" style="font-size:0.75rem;font-weight:500;">Framingham-based estimate</small>
+      </div>
+    </div>
+
+    <!-- Model Confidence -->
+    <div class="col-md-3 col-6">
+      <div class="result-metric-card">
+        <div class="result-metric-label">Model Confidence</div>
+        <div class="result-metric-value" style="color:var(--violet);">
+          {{ confidence }}%
+        </div>
+        <small class="text-muted" style="font-size:0.75rem;font-weight:500;">AI certainty score</small>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Prediction Status Alert ──────────────────────────── -->
+  <div class="glass-card p-4 mb-4">
+    <h4 class="mb-3" style="font-weight:800;">
+      <i class="fa-solid fa-robot me-2" style="color:var(--rose);"></i>AI Prediction Status
+    </h4>
+
+    {% if result == "Heart Disease Risk Detected" %}
+    <div class="alert mb-0"
+         style="background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.3);
+                border-radius:14px;display:flex;align-items:center;gap:16px;">
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(239,68,68,0.15);
+                  display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fa-solid fa-circle-xmark" style="color:var(--rose);font-size:1.4rem;"></i>
+      </div>
+      <div>
+        <h5 class="mb-0 fw-bold" style="color:#C0392B;">Heart Disease Risk Detected</h5>
+        <p class="mb-0 text-muted" style="font-size:0.9rem;">
+          The model has identified cardiovascular risk markers. Please consult a cardiologist
+          and follow the recommendations below promptly.
+        </p>
+      </div>
+    </div>
+    {% else %}
+    <div class="alert mb-0"
+         style="background:rgba(16,185,129,0.08);border:1.5px solid rgba(16,185,129,0.3);
+                border-radius:14px;display:flex;align-items:center;gap:16px;">
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(16,185,129,0.15);
+                  display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fa-solid fa-circle-check" style="color:var(--emerald);font-size:1.4rem;"></i>
+      </div>
+      <div>
+        <h5 class="mb-0 fw-bold" style="color:#065F46;">No Heart Disease Risk Detected</h5>
+        <p class="mb-0 text-muted" style="font-size:0.9rem;">
+          No significant cardiovascular risk markers were found. Continue a heart-healthy
+          lifestyle and schedule regular check-ups.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Patient Summary ───────────────────────────────────── -->
+  <div class="glass-card p-4 mb-4">
+    <h4 class="mb-4" style="font-weight:800;">
+      <i class="fa-solid fa-user-circle me-2" style="color:var(--rose);"></i>Patient Summary
+    </h4>
+    <div class="row text-center g-3">
+
+      <div class="col-6 col-md-4">
+        <div style="background:#FFF1F2;border-radius:14px;padding:18px 12px;">
+          <p class="text-muted mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Age</p>
+          <h4 class="fw-bold mb-0" style="color:var(--navy);">
+            {{ age }} <span style="font-size:0.85rem;color:var(--text-mute);">yrs</span>
+          </h4>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-4">
+        <div style="background:#FFF7ED;border-radius:14px;padding:18px 12px;">
+          <p class="text-muted mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Blood Pressure</p>
+          <h4 class="fw-bold mb-0" style="color:var(--navy);">
+            {{ sysBP }}<span style="font-size:0.9rem;color:var(--text-mute);">/</span>{{ diaBP }}
+            <span style="font-size:0.75rem;color:var(--text-mute);">mmHg</span>
+          </h4>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-4">
+        <div style="background:#F0F9FF;border-radius:14px;padding:18px 12px;">
+          <p class="text-muted mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Total Cholesterol</p>
+          <h4 class="fw-bold mb-0" style="color:var(--navy);">
+            {{ totChol }} <span style="font-size:0.75rem;color:var(--text-mute);">mg/dL</span>
+          </h4>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-4">
+        <div style="background:#F5F3FF;border-radius:14px;padding:18px 12px;">
+          <p class="text-muted mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">BMI</p>
+          <h4 class="fw-bold mb-0" style="color:var(--navy);">{{ bmi }}</h4>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-4">
+        <div style="background:#ECFDF5;border-radius:14px;padding:18px 12px;">
+          <p class="text-muted mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Heart Rate</p>
+          <h4 class="fw-bold mb-0" style="color:var(--navy);">
+            {{ heartRate }} <span style="font-size:0.75rem;color:var(--text-mute);">bpm</span>
+          </h4>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-4">
+        <div style="background:#FFFBEB;border-radius:14px;padding:18px 12px;">
+          <p class="text-muted mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Blood Glucose</p>
+          <h4 class="fw-bold mb-0" style="color:var(--navy);">
+            {{ glucose }} <span style="font-size:0.75rem;color:var(--text-mute);">mg/dL</span>
+          </h4>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Contributing Factors + Chart ─────────────────────── -->
+  <div class="row g-4 mb-4">
+
+    <!-- Progress Bars -->
+    <div class="col-md-7">
+      <div class="glass-card p-4 h-100">
+        <h4 class="mb-4" style="font-weight:800;">
+          <i class="fa-solid fa-chart-bar me-2" style="color:var(--rose);"></i>Top Contributing Factors
+        </h4>
+
+        <div class="mb-4">
+          <div class="d-flex justify-content-between mb-2">
+            <span style="font-weight:600;">Age</span>
+            <span style="font-weight:700;color:var(--rose);">80%</span>
+          </div>
+          <div class="progress" style="height:10px;border-radius:6px;background:#FEE2E2;">
+            <div class="progress-bar-custom bg-danger factor-bar" style="width:0%;" data-width="80"></div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <div class="d-flex justify-content-between mb-2">
+            <span style="font-weight:600;">Systolic Blood Pressure</span>
+            <span style="font-weight:700;color:var(--amber);">72%</span>
+          </div>
+          <div class="progress" style="height:10px;border-radius:6px;background:#FEF9C3;">
+            <div class="progress-bar-custom bg-warning factor-bar" style="width:0%;" data-width="72"></div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <div class="d-flex justify-content-between mb-2">
+            <span style="font-weight:600;">Total Cholesterol</span>
+            <span style="font-weight:700;color:var(--teal);">65%</span>
+          </div>
+          <div class="progress" style="height:10px;border-radius:6px;background:#E0F2FE;">
+            <div class="progress-bar-custom bg-info factor-bar" style="width:0%;" data-width="65"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="d-flex justify-content-between mb-2">
+            <span style="font-weight:600;">Blood Glucose</span>
+            <span style="font-weight:700;color:var(--emerald);">55%</span>
+          </div>
+          <div class="progress" style="height:10px;border-radius:6px;background:#DCFCE7;">
+            <div class="progress-bar-custom bg-success factor-bar" style="width:0%;" data-width="55"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Factors Bar Chart -->
+    <div class="col-md-5">
+      <div class="glass-card p-4 h-100">
+        <h4 class="mb-3" style="font-weight:800;">
+          <i class="fa-solid fa-chart-simple me-2" style="color:var(--violet);"></i>Factor Impact
+        </h4>
+        <canvas id="factorsChart" height="220"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Recommendations ───────────────────────────────────── -->
+  <div class="glass-card p-4 mb-4">
+    <h4 class="mb-4" style="font-weight:800;">
+      <i class="fa-solid fa-stethoscope me-2" style="color:var(--rose);"></i>Clinical Recommendations
+    </h4>
+    <div class="row g-3">
+      {% for item in recommendations %}
+      <div class="col-md-6">
+        <div style="background:#FFF1F2;border:1px solid rgba(239,68,68,0.18);border-radius:14px;
+                    padding:16px;display:flex;align-items:flex-start;gap:12px;">
+          <i class="fa-solid fa-circle-check mt-1" style="color:var(--rose);flex-shrink:0;"></i>
+          <span style="font-weight:600;color:var(--text-head);font-size:0.95rem;">{{ item }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── Heart-Healthy Diet Plan ───────────────────────────── -->
+  <div class="glass-card p-4 mb-4">
+    <h4 class="mb-4" style="font-weight:800;">
+      <i class="fa-solid fa-heart me-2" style="color:var(--rose);"></i>Heart-Healthy Diet Plan
+      <small class="text-muted" style="font-size:0.7rem;font-weight:600;background:#FEF9C3;
+             color:#92400E;padding:3px 10px;border-radius:10px;margin-left:10px;vertical-align:middle;">
+        Mediterranean Style
+      </small>
+    </h4>
+
+    <div class="row g-4">
+
+      <!-- Eat -->
+      <div class="col-md-6">
+        <div style="background:#F0FDF4;border:1.5px solid rgba(16,185,129,0.25);border-radius:16px;padding:24px;">
+          <h5 style="color:#166534;font-weight:800;margin-bottom:16px;">
+            <i class="fa-solid fa-thumbs-up me-2"></i>Foods to Eat
+          </h5>
+          <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(16,185,129,0.15);
+                     display:inline-flex;align-items:center;justify-content:center;">🐟</span>
+              Fatty Fish (salmon, mackerel)
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(16,185,129,0.15);
+                     display:inline-flex;align-items:center;justify-content:center;">🫒</span>
+              Olive Oil &amp; Avocado
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(16,185,129,0.15);
+                     display:inline-flex;align-items:center;justify-content:center;">🥦</span>
+              Leafy Greens &amp; Vegetables
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(16,185,129,0.15);
+                     display:inline-flex;align-items:center;justify-content:center;">🫐</span>
+              Berries &amp; Citrus Fruits
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(16,185,129,0.15);
+                     display:inline-flex;align-items:center;justify-content:center;">🌾</span>
+              Whole Grains (oats, quinoa)
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(16,185,129,0.15);
+                     display:inline-flex;align-items:center;justify-content:center;">🥜</span>
+              Nuts &amp; Seeds
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Avoid -->
+      <div class="col-md-6">
+        <div style="background:#FFF1F2;border:1.5px solid rgba(239,68,68,0.25);border-radius:16px;padding:24px;">
+          <h5 style="color:#9F1239;font-weight:800;margin-bottom:16px;">
+            <i class="fa-solid fa-thumbs-down me-2"></i>Foods to Avoid
+          </h5>
+          <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.12);
+                     display:inline-flex;align-items:center;justify-content:center;">🥩</span>
+              Red &amp; Processed Meats
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.12);
+                     display:inline-flex;align-items:center;justify-content:center;">🧈</span>
+              Saturated &amp; Trans Fats
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.12);
+                     display:inline-flex;align-items:center;justify-content:center;">🧂</span>
+              High-Sodium Foods (&gt;1,500 mg/day)
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.12);
+                     display:inline-flex;align-items:center;justify-content:center;">🍬</span>
+              Refined Sugars &amp; Sweets
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.12);
+                     display:inline-flex;align-items:center;justify-content:center;">🥤</span>
+              Sugary Drinks &amp; Alcohol
+            </li>
+            <li style="display:flex;align-items:center;gap:10px;font-weight:600;">
+              <span style="width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.12);
+                     display:inline-flex;align-items:center;justify-content:center;">🍟</span>
+              Fried &amp; Ultra-Processed Foods
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Weekly Exercise Target ────────────────────────────── -->
+  <div class="glass-card p-4 mb-4">
+    <h4 class="mb-3" style="font-weight:800;">
+      <i class="fa-solid fa-person-running me-2" style="color:var(--rose);"></i>
+      Recommended Weekly Exercise
+    </h4>
+    <div style="background:#FEE2E2;border-radius:10px;overflow:hidden;height:36px;">
+      <div class="exercise-bar"
+           data-width="{{ exercise_width }}">
+        {{ exercise_goal }}
+      </div>
+    </div>
+    <p class="text-muted mt-2" style="font-size:0.85rem;">
+      <i class="fa-solid fa-circle-info me-1"></i>
+      Always begin any new exercise program under medical supervision, especially with elevated cardiovascular risk.
+    </p>
+  </div>
+
+  <!-- ── Target Heart Rate Zone ────────────────────────────── -->
+  <div class="glass-card p-4 mb-5">
+    <h4 class="mb-3" style="font-weight:800;">
+      <i class="fa-solid fa-heart-pulse me-2" style="color:var(--rose);"></i>
+      Target Heart Rate Zone
+      <small class="text-muted" style="font-size:0.72rem;font-weight:500;margin-left:8px;">
+        Based on your resting heart rate of <strong>{{ heartRate }} bpm</strong>
+      </small>
+    </h4>
+
+    <!-- Zone indicator bar -->
+    <div style="position:relative;background:#FCE8E8;border-radius:12px;height:48px;overflow:hidden;margin-bottom:20px;">
+      <!-- Low zone (50-70% max HR) -->
+      <div id="hrZoneLow"
+           style="position:absolute;top:0;height:100%;background:rgba(245,158,11,0.7);
+                  border-radius:0;transition:all 1.4s cubic-bezier(0.22,0.68,0,1.2);
+                  display:flex;align-items:center;justify-content:center;">
+      </div>
+      <!-- High zone (70-85% max HR) -->
+      <div id="hrZoneHigh"
+           style="position:absolute;top:0;height:100%;background:rgba(239,68,68,0.75);
+                  border-radius:0 12px 12px 0;transition:all 1.4s cubic-bezier(0.22,0.68,0,1.2);
+                  display:flex;align-items:center;justify-content:center;">
+      </div>
+      <!-- Label overlay -->
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                  pointer-events:none;">
+        <span id="hrZoneLabel"
+              style="font-weight:700;color:white;font-size:0.95rem;text-shadow:0 1px 3px rgba(0,0,0,0.3);">
+          Calculating…
+        </span>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="row g-3 text-center">
+      <div class="col-4">
+        <div style="background:#F9FAFB;border-radius:12px;padding:14px 8px;">
+          <p class="mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                                  color:var(--text-mute);letter-spacing:0.5px;">Moderate Zone</p>
+          <div id="lowZoneLabel" style="font-weight:800;color:var(--amber);font-size:1rem;">—</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div style="background:#F9FAFB;border-radius:12px;padding:14px 8px;">
+          <p class="mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                                  color:var(--text-mute);letter-spacing:0.5px;">Vigorous Zone</p>
+          <div id="highZoneLabel" style="font-weight:800;color:var(--rose);font-size:1rem;">—</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div style="background:#F9FAFB;border-radius:12px;padding:14px 8px;">
+          <p class="mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                                  color:var(--text-mute);letter-spacing:0.5px;">Max Heart Rate</p>
+          <div id="maxHrLabel" style="font-weight:800;color:var(--navy);font-size:1rem;">—</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-muted mt-3" style="font-size:0.82rem;">
+      <i class="fa-solid fa-triangle-exclamation me-1" style="color:var(--amber);"></i>
+      <strong>Moderate zone</strong> = 50–70% of max HR &nbsp;·&nbsp;
+      <strong>Vigorous zone</strong> = 70–85% of max HR.
+      Consult your cardiologist before starting any new exercise routine.
+    </p>
+  </div>
+
+  <!-- ── Action Buttons ────────────────────────────────────── -->
+  <div class="text-center no-print">
+    <a href="/heart-form" class="hero-btn-primary me-3"
+       style="background:linear-gradient(100deg,#DC2626,#F97316);">
+      <i class="fa-solid fa-rotate-left"></i>Assess Again
+    </a>
+    <button onclick="window.print()" class="hero-btn-secondary">
+      <i class="fa-solid fa-print"></i>Print Report
+    </button>
+  </div>
+
+  <!-- Disclaimer -->
+  <p class="text-center text-muted mt-4"
+     style="font-size:0.78rem;max-width:580px;margin-left:auto;margin-right:auto;">
+    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+    <strong>Disclaimer:</strong> This tool is for informational purposes only and does not
+    constitute medical advice. Always consult a licensed cardiologist for diagnosis and treatment.
+  </p>
+
+</div>
+
+<!-- Bootstrap + Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<script>
+  // ── Values from Jinja ──────────────────────────────────────
+  const riskValue  = parseFloat("{{ risk }}")      || 0;
+  const patientAge = parseInt("{{ age }}")          || 40;
+  const restingHR  = parseInt("{{ heartRate }}")    || 70;
+
+  // ── Risk gauge color ──────────────────────────────────────
+  const riskColor = riskValue >= 70 ? '#EF4444'
+                  : riskValue >= 40 ? '#F59E0B'
+                  :                   '#10B981';
+
+  // ── Half-doughnut gauge ───────────────────────────────────
+  new Chart(document.getElementById('riskGauge'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [riskValue, 100 - riskValue],
+        backgroundColor: [riskColor, '#E2E8F0'],
+        borderWidth: 0,
+        circumference: 180,
+        rotation: 270,
+      }]
+    },
+    options: {
+      cutout: '75%',
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { duration: 1400, easing: 'easeInOutQuart' }
+    }
+  });
+
+  // ── Contributing factors horizontal bar chart ─────────────
+  new Chart(document.getElementById('factorsChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Age', 'Systolic BP', 'Cholesterol', 'Blood Glucose'],
+      datasets: [{
+        data: [80, 72, 65, 55],
+        backgroundColor: ['#EF4444', '#F59E0B', '#0EA5E9', '#8B5CF6'],
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      animation: { duration: 1200, easing: 'easeInOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}% impact` } }
+      },
+      scales: {
+        x: {
+          max: 100,
+          grid: { color: 'rgba(0,0,0,0.04)' },
+          ticks: { callback: v => v + '%', font: { weight: '600' } },
+          border: { display: false }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { weight: '600', size: 13 } },
+          border: { display: false }
+        }
+      }
+    }
+  });
+
+  // ── Target Heart Rate Zone computation ────────────────────
+  const maxHR       = 220 - patientAge;
+  const modLow      = Math.round(maxHR * 0.50);   // moderate zone start
+  const modHigh     = Math.round(maxHR * 0.70);   // moderate zone end / vigorous start
+  const vigHigh     = Math.round(maxHR * 0.85);   // vigorous zone end
+
+  // Map HR values to a 0-100% bar (base = 50 bpm, ceiling = 220 bpm)
+  const BASE  = 50;
+  const RANGE = 220 - BASE;
+  const pct   = hr => Math.max(0, Math.min(100, ((hr - BASE) / RANGE) * 100));
+
+  const lowStart  = pct(modLow);
+  const lowWidth  = pct(modHigh) - lowStart;
+  const highStart = pct(modHigh);
+  const highWidth = pct(vigHigh) - highStart;
+
+  // Apply after a short delay so the transition is visible
+  setTimeout(() => {
+    const zoneLow  = document.getElementById('hrZoneLow');
+    const zoneHigh = document.getElementById('hrZoneHigh');
+    zoneLow.style.left  = lowStart  + '%';
+    zoneLow.style.width = lowWidth  + '%';
+    zoneHigh.style.left  = highStart + '%';
+    zoneHigh.style.width = highWidth + '%';
+
+    document.getElementById('hrZoneLabel').textContent  = `Target: ${modLow}–${vigHigh} bpm`;
+    document.getElementById('lowZoneLabel').textContent  = `${modLow}–${modHigh} bpm`;
+    document.getElementById('highZoneLabel').textContent = `${modHigh}–${vigHigh} bpm`;
+    document.getElementById('maxHrLabel').textContent    = `${maxHR} bpm`;
+  }, 400);
+
+  // ── Animate progress bars + exercise bar on scroll ────────
+  const factorBars  = document.querySelectorAll('.factor-bar');
+  const exerciseBar = document.querySelector('.exercise-bar');
+
+  const animateBars = () => {
+    factorBars.forEach(b => { b.style.width = b.dataset.width + '%'; });
+    if (exerciseBar) {
+      exerciseBar.style.width = (exerciseBar.dataset.width || 60) + '%';
+    }
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) { animateBars(); observer.disconnect(); }
+  }, { threshold: 0.2 });
+
+  const firstCard = document.querySelector('.glass-card');
+  if (firstCard) observer.observe(firstCard);
+  else animateBars();
+</script>
+</body>
+</html>

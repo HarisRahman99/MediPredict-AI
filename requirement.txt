@@ -1,0 +1,9 @@
+flask
+pandas
+numpy
+scikit-learn
+opencv-python-headless
+PyMuPDF
+paddleocr
+paddlepaddle
+pytesseract

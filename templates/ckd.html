@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CKD Prediction Form — MediPredict AI</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <p style="font-weight:700;color:var(--navy);font-size:1.1rem;margin:0;">Analyzing patient data…</p>
+  <p style="color:var(--text-mute);margin:0;font-size:0.9rem;">Our AI model is processing your inputs</p>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg custom-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <i class="fa-solid fa-heart-pulse me-2" style="color:var(--teal);"></i>MediPredict AI
+    </a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto align-items-center">
+        <li class="nav-item"><a class="nav-link" href="/"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/ckd"><i class="fa-solid fa-arrow-left me-1"></i>Back</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-5">
+
+  <!-- Header -->
+  <div class="text-center mb-5">
+    <span class="module-badge"><i class="fa-solid fa-kidneys me-1"></i>CKD PREDICTION</span>
+    <h1 style="font-size:2.4rem;font-weight:800;letter-spacing:-0.5px;color:var(--navy);">
+      Patient Data Entry
+    </h1>
+    <p class="text-muted mt-1">Fill in all sections below. Required fields are marked.</p>
+  </div>
+
+  <!-- Progress Tracker -->
+  <div class="form-progress-wrap">
+    <i class="fa-solid fa-circle-notch" style="color:var(--teal);font-size:1.1rem;"></i>
+    <div class="form-progress-bar">
+      <div class="form-progress-fill" id="progressFill" style="width:0%;"></div>
+    </div>
+    <span class="form-progress-label" id="progressLabel">0% complete</span>
+  </div>
+
+  <!-- Stepper (step 2 active) -->
+  <div class="stepper mb-5">
+    <div class="step completed">
+      <div class="step-circle"><i class="fa-solid fa-check" style="font-size:0.8rem;"></i></div>
+      <span>Method</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step active">
+      <div class="step-circle">2</div>
+      <span>Enter Data</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step">
+      <div class="step-circle">3</div>
+      <span>Results</span>
+    </div>
+  </div>
+
+  
+
+  <form action="/predict" method="POST" id="ckdForm">
+
+    <!-- ── 1. Patient Information ─────────────────────────── -->
+    <div class="form-card mb-4">
+      <div class="d-flex align-items-center mb-4">
+        <div class="icon-box me-3">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <div>
+          <h2 class="section-title mb-0">Patient Information</h2>
+          <small class="text-muted">Basic demographic details</small>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label for="age"><i class="fa-solid fa-calendar me-1" style="color:var(--teal);"></i>Age</label>
+          <input type="number" class="form-control" name="age" id="age" min="1" max="120" placeholder="e.g. 45" required>
+        </div>
+        <div class="col-md-3">
+          <label for="gender"><i class="fa-solid fa-venus-mars me-1" style="color:var(--teal);"></i>Gender</label>
+          <select class="form-select" name="gender" id="gender" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">Male</option>
+            <option value="0">Female</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="ethnicity"><i class="fa-solid fa-globe me-1" style="color:var(--teal);"></i>Ethnicity</label>
+          <select class="form-select" name="ethnicity" id="ethnicity" required>
+            <option value="" disabled selected>Select</option>
+            <option value="0">Mexican American</option>
+            <option value="1">Non-Hispanic Asian</option>
+            <option value="2">Non-Hispanic Black</option>
+            <option value="3">Non-Hispanic White</option>
+            <option value="4">Other Hispanic</option>
+            <option value="5">Other / Multiracial</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="education_level"><i class="fa-solid fa-graduation-cap me-1" style="color:var(--teal);"></i>Education Level</label>
+          <select class="form-select" name="education_level" id="education_level" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">Less than 9th Grade</option>
+            <option value="2">9th – 11th Grade</option>
+            <option value="3">High School Graduate</option>
+            <option value="4">Some College</option>
+            <option value="5">College Graduate</option>
+            <option value="9">Unknown</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 2. Body Measurements ───────────────────────────── -->
+    <div class="form-card mb-4">
+      <div class="d-flex align-items-center mb-4">
+        <div class="icon-box body-icon me-3">
+          <i class="fa-solid fa-ruler-vertical"></i>
+        </div>
+        <div>
+          <h2 class="section-title mb-0">Body Measurements</h2>
+          <small class="text-muted">Physical health indicators</small>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label for="poverty_income_ratio">
+            <i class="fa-solid fa-coins me-1" style="color:var(--violet);"></i>Poverty Income Ratio
+          </label>
+          <select class="form-select" name="poverty_income_ratio" id="poverty_income_ratio">
+            <option value="0.5">Very Low Income</option>
+            <option value="1.0">Low Income</option>
+            <option value="2.0" selected>Middle Income</option>
+            <option value="4.0">Upper Middle Income</option>
+            <option value="6.0">High Income</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="bmi">
+            <i class="fa-solid fa-weight-scale me-1" style="color:var(--violet);"></i>BMI
+          </label>
+          <input type="number" step="0.1" class="form-control" name="bmi" id="bmi" placeholder="e.g. 24.5" min="10" max="70" required>
+        </div>
+        <div class="col-md-3">
+          <label for="weight_kg">
+            <i class="fa-solid fa-weight-hanging me-1" style="color:var(--violet);"></i>Weight (kg)
+          </label>
+          <input type="number" step="0.1" class="form-control" name="weight_kg" id="weight_kg" placeholder="e.g. 72.0" required>
+        </div>
+        <div class="col-md-3">
+          <label for="height_cm">
+            <i class="fa-solid fa-arrows-up-down me-1" style="color:var(--violet);"></i>Height (cm)
+          </label>
+          <input type="number" step="0.1" class="form-control" name="height_cm" id="height_cm" placeholder="e.g. 170.0" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 3. Vital Signs ─────────────────────────────────── -->
+    <div class="form-card mb-4">
+      <div class="d-flex align-items-center mb-4">
+        <div class="icon-box vital-icon me-3">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <div>
+          <h2 class="section-title mb-0">Vital Signs</h2>
+          <small class="text-muted">Blood pressure readings (mmHg)</small>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="bp_systolic">
+            <i class="fa-solid fa-arrow-up me-1" style="color:var(--rose);"></i>Systolic BP (mmHg)
+          </label>
+          <input type="number" step="1" class="form-control" name="bp_systolic" id="bp_systolic"
+                 placeholder="Normal: 90–120" min="60" max="250" required>
+          <span class="hint-text">Upper number of blood pressure reading</span>
+        </div>
+        <div class="col-md-6">
+          <label for="bp_diastolic">
+            <i class="fa-solid fa-arrow-down me-1" style="color:var(--amber);"></i>Diastolic BP (mmHg)
+          </label>
+          <input type="number" step="1" class="form-control" name="bp_diastolic" id="bp_diastolic"
+                 placeholder="Normal: 60–80" min="40" max="150" required>
+          <span class="hint-text">Lower number of blood pressure reading</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 4. Laboratory Values ───────────────────────────── -->
+    <div class="form-card mb-4">
+      <div class="d-flex align-items-center mb-4">
+        <div class="icon-box lab-icon me-3">
+          <i class="fa-solid fa-flask"></i>
+        </div>
+        <div>
+          <h2 class="section-title mb-0">Laboratory Values</h2>
+          <small class="text-muted">Kidney function and biochemical markers</small>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="serum_creatinine">Serum Creatinine (mg/dL)</label>
+          <input type="number" step="0.01" class="form-control" name="serum_creatinine" id="serum_creatinine"
+                 placeholder="Normal: 0.6–1.2" required>
+          <span class="hint-text">Key kidney filtration marker</span>
+        </div>
+        <div class="col-md-4">
+          <label for="blood_urea_nitrogen">Blood Urea Nitrogen (mg/dL)</label>
+          <input type="number" step="0.1" class="form-control" name="blood_urea_nitrogen" id="blood_urea_nitrogen"
+                 placeholder="Normal: 7–20" required>
+        </div>
+        <div class="col-md-4">
+          <label for="albumin_serum">Albumin Serum (g/dL)</label>
+          <input type="number" step="0.1" class="form-control" name="albumin_serum" id="albumin_serum"
+                 placeholder="Normal: 3.4–5.4" required>
+        </div>
+        <div class="col-md-4">
+          <label for="phosphorus">Phosphorus (mg/dL)</label>
+          <input type="number" step="0.1" class="form-control" name="phosphorus" id="phosphorus"
+                 placeholder="Normal: 2.5–4.5" required>
+        </div>
+        <div class="col-md-4">
+          <label for="bicarbonate">Bicarbonate (mEq/L)</label>
+          <input type="number" step="0.1" class="form-control" name="bicarbonate" id="bicarbonate"
+                 placeholder="Normal: 22–29" required>
+        </div>
+        <div class="col-md-4">
+          <label for="calcium">Calcium (mg/dL)</label>
+          <input type="number" step="0.1" class="form-control" name="calcium" id="calcium"
+                 placeholder="Normal: 8.5–10.2" required>
+        </div>
+        <div class="col-md-4">
+          <label for="uric_acid">Uric Acid (mg/dL)</label>
+          <input type="number" step="0.1" class="form-control" name="uric_acid" id="uric_acid"
+                 placeholder="Normal: 2.4–6.0" required>
+        </div>
+        <div class="col-md-4">
+          <label for="urine_creatinine">Urine Creatinine (mg/dL)</label>
+          <input type="number" step="0.1" class="form-control" name="urine_creatinine" id="urine_creatinine"
+                 placeholder="e.g. 80–240" required>
+        </div>
+        <div class="col-md-4">
+          <label for="urine_albumin">Urine Albumin (mg/L)</label>
+          <input type="number" step="0.1" class="form-control" name="urine_albumin" id="urine_albumin"
+                 placeholder="Normal: &lt;30" required>
+        </div>
+        <div class="col-md-4">
+          <label for="albumin_creatinine_ratio">Albumin–Creatinine Ratio</label>
+          <input type="number" step="0.1" class="form-control" name="albumin_creatinine_ratio" id="albumin_creatinine_ratio"
+                 placeholder="Normal: &lt;30 mg/g" required>
+          <span class="hint-text">Key CKD indicator (ACR)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 5. Lifestyle & Medical History ────────────────── -->
+    <div class="form-card mb-5">
+      <div class="d-flex align-items-center mb-4">
+        <div class="icon-box life-icon me-3">
+          <i class="fa-solid fa-person-running"></i>
+        </div>
+        <div>
+          <h2 class="section-title mb-0">Lifestyle & Medical History</h2>
+          <small class="text-muted">Risk factors and health habits</small>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="diabetes_diagnosed">
+            <i class="fa-solid fa-syringe me-1" style="color:var(--emerald);"></i>Diabetes Diagnosed
+          </label>
+          <select class="form-select" name="diabetes_diagnosed" id="diabetes_diagnosed" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">Yes</option>
+            <option value="2">No</option>
+            <option value="3">Borderline</option>
+            <option value="9">Don't Know</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="insulin_use">
+            <i class="fa-solid fa-vial me-1" style="color:var(--emerald);"></i>Insulin Use
+          </label>
+          <select class="form-select" name="insulin_use" id="insulin_use" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">Yes</option>
+            <option value="2">No</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="diabetes_pills">
+            <i class="fa-solid fa-pills me-1" style="color:var(--emerald);"></i>Diabetes Pills
+          </label>
+          <select class="form-select" name="diabetes_pills" id="diabetes_pills" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">Yes</option>
+            <option value="2">No</option>
+            <option value="9">Don't Know</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label for="ever_smoked">
+            <i class="fa-solid fa-smoking me-1" style="color:var(--amber);"></i>Ever Smoked
+          </label>
+          <select class="form-select" name="ever_smoked" id="ever_smoked" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">Yes</option>
+            <option value="2">No</option>
+            <option value="7">Refused</option>
+            <option value="9">Don't Know</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label for="current_smoker">
+            <i class="fa-solid fa-ban-smoking me-1" style="color:var(--amber);"></i>Current Smoking Status
+          </label>
+          <select class="form-select" name="current_smoker" id="current_smoker" required>
+            <option value="" disabled selected>Select</option>
+            <option value="1">Every Day</option>
+            <option value="2">Some Days</option>
+            <option value="3">Not At All</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="text-center">
+      <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn"
+              style="font-size:1.1rem;padding:16px 48px;">
+        <i class="fa-solid fa-brain me-2"></i>Predict CKD Risk
+      </button>
+      <p class="text-muted mt-3" style="font-size:0.85rem;">
+        <i class="fa-solid fa-lock me-1"></i>Your data is processed locally and never stored.
+      </p>
+    </div>
+
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ── Form Progress Tracker ────────────────────────────────
+  const form       = document.getElementById('ckdForm');
+  const fill       = document.getElementById('progressFill');
+  const label      = document.getElementById('progressLabel');
+  const allFields  = form.querySelectorAll('input[required], select[required]');
+
+  function updateProgress() {
+    let filled = 0;
+    allFields.forEach(f => {
+      if (f.value && f.value.trim() !== '' && f.value !== f.options?.[0]?.value) filled++;
+      // For selects with disabled first option, check differently
+      if (f.tagName === 'SELECT' && f.value !== '') filled++;
+      else if (f.tagName === 'INPUT' && f.value !== '') filled++;
+    });
+
+    // Recount properly
+    let count = 0;
+    allFields.forEach(f => {
+      if (f.tagName === 'SELECT') { if (f.value !== '') count++; }
+      else { if (f.value.trim() !== '') count++; }
+    });
+
+    const pct = Math.round((count / allFields.length) * 100);
+    fill.style.width  = pct + '%';
+    label.textContent = pct + '% complete';
+  }
+
+  allFields.forEach(f => f.addEventListener('input', updateProgress));
+  allFields.forEach(f => f.addEventListener('change', updateProgress));
+
+  const ocrAutofill = JSON.parse('{{ ocr_autofill|default({})|tojson|safe }}');
+
+  function applyOcrAutofill(values) {
+    Object.entries(values || {}).forEach(([fieldName, value]) => {
+      const field = form.querySelector(`[name="${fieldName}"]`);
+      if (!field || field.value) return;
+      field.value = value;
+      field.dataset.ocrFilled = 'true';
+      field.classList.add('ocr-filled');
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    updateProgress();
+  }
+
+  form.querySelectorAll('input, select').forEach(field => {
+    field.addEventListener('input', () => {
+      if (field.dataset.ocrFilled === 'true') {
+        field.classList.remove('ocr-filled');
+        delete field.dataset.ocrFilled;
+      }
+    });
+  });
+
+  applyOcrAutofill(ocrAutofill);
+
+  
+
+  // ── Loading Overlay on Submit ────────────────────────────
+  form.addEventListener('submit', function(e) {
+    // Basic HTML5 validation first
+    if (!form.checkValidity()) return;
+    document.getElementById('loadingOverlay').classList.add('active');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Heart Prediction Result</title>
+</head>
+<body>
+
+<h1>Heart Disease Prediction Result</h1>
+
+<h2>Risk Score: {{ risk }}%</h2>
+
+<h2>Risk Level: {{ risk_level }}</h2>
+
+<ul>
+{% for item in recommendations %}
+    <li>{{ item }}</li>
+{% endfor %}
+</ul>
+
+</body>
+</html>
