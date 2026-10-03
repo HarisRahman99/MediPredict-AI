@@ -203,19 +203,19 @@
 
 
 <div class="col-md-6">
-    <label for="BPMeds">
-        <i class="fa-solid fa-pills me-1" style="color:var(--rose);"></i>
-        Taking Blood Pressure Medication
+    <label for="prevalentHyp">
+        <i class="fa-solid fa-heart-circle-exclamation me-1" style="color:var(--amber);"></i>
+        Hypertension
     </label>
 
-    <select class="form-select" name="BPMeds" id="BPMeds" required>
+    <select class="form-select" name="prevalentHyp" id="prevalentHyp" required>
         <option value="" disabled selected>Select</option>
         <option value="1">Yes</option>
         <option value="0">No</option>
     </select>
 
     <span class="hint-text">
-        Are you currently taking medication for high blood pressure?
+        Has a doctor diagnosed hypertension?
     </span>
 </div>
 
@@ -236,20 +236,21 @@
     </span>
 </div>
 
+
 <div class="col-md-6">
-    <label for="prevalentHyp">
-        <i class="fa-solid fa-heart-circle-exclamation me-1" style="color:var(--amber);"></i>
-        Hypertension
+    <label for="BPMeds">
+        <i class="fa-solid fa-pills me-1" style="color:var(--rose);"></i>
+        Taking Blood Pressure Medication
     </label>
 
-    <select class="form-select" name="prevalentHyp" id="prevalentHyp" required>
+    <select class="form-select" name="BPMeds" id="BPMeds" required>
         <option value="" disabled selected>Select</option>
         <option value="1">Yes</option>
         <option value="0">No</option>
     </select>
 
     <span class="hint-text">
-        Has a doctor diagnosed hypertension?
+        Are you currently taking medication for high blood pressure?
     </span>
 </div>
 
@@ -395,7 +396,7 @@
 <div class="col-md-4">
     <label class="clinical-label" for="glucose">
         <i class="fa-solid fa-vial me-1" style="color:var(--amber);"></i>Blood Glucose 
-        (mg/dL)</>
+        (mg/dL)</label>
 
     <input
         type="number"
